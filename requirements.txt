@@ -1,3 +1,5 @@
+pip
+h2o
 absl-py==1.4.0
 aiohttp==3.8.5
 aiosignal==1.3.1
@@ -7,9 +9,8 @@ async-timeout==4.0.3
 attrs==22.2.0
 blinker==1.6.2
 cachetools==5.3.0
-certifi @ file:///C:/ci_311/certifi_1676421629969/work/certifi
 charset-normalizer==3.1.0
-click>=7.0
+click==8.1.3
 colorama==0.4.6
 contourpy==1.0.7
 cycler==0.11.0
@@ -38,6 +39,9 @@ Jinja2==3.1.2
 joblib==1.1.1
 JPype1==1.4.1
 jsonschema==4.17.3
+keras==2.13.1
+kiwisolver==1.4.4
+konlpy==0.6.0
 libclang==16.0.0
 lxml==4.9.3
 Markdown==3.4.3
@@ -86,12 +90,13 @@ requests==2.28.2
 requests-oauthlib==1.3.1
 rich==13.3.4
 rsa==4.9
+scikit-learn==1.2.2
+scipy==1.10.1
 seaborn==0.12.2
 six==1.16.0
 smmap==5.0.0
 soynlp==0.0.493
 st-card-component==0.0.10
-st-files-connection @ git+https://github.com/streamlit/files-connection@c65a9f0da856207086540baee3a36346bb39c0eb
 statsmodels==0.14.0
 stqdm==0.0.5
 streamlit==1.25.0
@@ -106,6 +111,12 @@ streamlit-scrollable-textbox==0.0.3
 streamlit-toggle-switch==1.0.2
 tangled-up-in-unicode==0.2.0
 tenacity==8.2.2
+tensorboard==2.13.0
+tensorboard-data-server==0.7.1
+tensorflow
+tensorflow-estimator
+tensorflow-intel
+tensorflow-io-gcs-filesystem
 termcolor==2.3.0
 threadpoolctl==3.1.0
 toml==0.10.2
