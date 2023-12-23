@@ -54,7 +54,7 @@ if comment_data is not None:
             st.caption('올해 고정멤버 언급량 top5를 확인해보세요! (시청자가 댓글을 작성한 날짜 기준으로 집계)')
             
             with st.form(key="waktaverse_aka_comment"):
-                c1,c2,c3 = st.columns([1,2,1])       
+                c1,c2,c3 = st.columns([1,4,1])       
 
                 with c1:
                     month_option = st.selectbox('month',[11,10,9,8,7,6,5,4,3,2,1,'all'], key='gomem_month')
