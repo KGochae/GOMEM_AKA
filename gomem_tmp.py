@@ -19,7 +19,7 @@ pd.set_option('mode.chained_assignment',  None)
 
 @st.cache_data
 def get_comment():
-    comment_data = pd.read_csv('csv_data/gomem_tmp_20231130.csv')
+    comment_data = pd.read_csv('csv/gomem_tmp_20231130.csv')
     comment_data['tmp'] = comment_data['tmp'].apply(ast.literal_eval)
     return comment_data
 
