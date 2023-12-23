@@ -12,7 +12,7 @@ import warnings
 warnings.filterwarnings("ignore")
 
 from collections import Counter
-from PIL import Image, ImageDraw.
+from PIL import Image, ImageDraw
 
 # ------------------------------------------------------------------------------------------------------------------------------------------- #
 
