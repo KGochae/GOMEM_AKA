@@ -11,153 +11,11 @@ import tqdm
 import warnings
 warnings.filterwarnings("ignore")
 
-from googleapiclient.discovery import build
-
-from ckonlpy.tag import Twitter
-
-import tensorflow as tf
-from keras.models import Model, load_model
-from keras.preprocessing.text import Tokenizer
-from keras.preprocessing.sequence import pad_sequences
-from soynlp.normalizer import *
-
 from collections import Counter
-from PIL import Image, ImageDraw
-
-
-# -------------------------------------------------------- yotube api v3 ------------------------------------------------------------- #
-
-
-DEVELOPER_KEY = (
-    # Very Important Point
-    st.secrets["youtube_api_key"]
-).get('DEVELOPER_KEY')
-
-YOUTUBE_API_SERVICE_NAME = "youtube"
-YOUTUBE_API_VERSION = "v3"
-youtube = build(YOUTUBE_API_SERVICE_NAME, YOUTUBE_API_VERSION, developerKey=DEVELOPER_KEY)
-
-# ------------------------------------------------------------------------------------------------------------------------------------ #
-
-
-word_freq_counter = Counter()
-twi = Twitter()
-
-# ------------------------------------------------------------- sentiment test ------------------------------------------------------------- #
-
-# 댓글 가져오고 / sentiment 적용
-def get_comment(videoId):
-    comments = list()
-    total_comments = 0
-    response = youtube.commentThreads().list(part='snippet,replies', videoId=videoId, maxResults=100).execute()
-
-    while response and total_comments < 500:
-        for item in response['items']:
-            comment = item['snippet']['topLevelComment']['snippet']
-            comments.append([comment['textDisplay'], comment['likeCount']])  # comment['publishedAt'],
-            total_comments += 1
-
-        if total_comments < 500 and 'nextPageToken' in response:
-            response = youtube.commentThreads().list(part='snippet,replies', videoId=videoId,
-                                                     pageToken=response['nextPageToken'], maxResults=100).execute()
-        else:
-            break
-
-    comment_df = pd.DataFrame(comments)
-    comment_df.columns = ['comment', 'like']
-    comment_df['video_id'] = videoId
-
-    def extract_time_info(comment):
-        time_pattern = r"(\d+:\d+)</a>"  # youtube timeline 의 경우, </a> 태그로 감싸져있음.
-        time_info = re.findall(time_pattern, comment)
-        return time_info
-    
-    comment_df['time_info'] = comment_df['comment'].apply(extract_time_info)      
-    comment_df['comment'] = comment_df['comment'].apply(lambda x: re.sub('[^ㄱ-ㅎㅏ-ㅣ가-힣 ]+', '',x))
-    comment_df['comment'] = comment_df['comment'].apply(lambda x: emoticon_normalize(x, num_repeats=3))
-
-
-    comment_df[['score', 'tmp']] = comment_df['comment'].apply(lambda x: pd.Series(sentiment_predict(x)))
-    
-    return comment_df
-
-
-
-# 토크나이져
-
-# 모델
-@st.cache_resource
-def loaded_model():
-    model = load_model('C:/scraping/model/Bilstm.h5')
-    return model
-
-nlp_model = loaded_model()
-
-# 토크나이져 
-@st.cache_data
-def load_tokenizer():
-    tokenizer_pickle_path = "C:/scraping/model/tokenizer.pickle"
-    with open(tokenizer_pickle_path, "rb") as f:
-        tokenizer = pickle.load(f)
-
-    return tokenizer
-
-tokenizer = load_tokenizer()
+from PIL import Image, ImageDraw.
 
 # ------------------------------------------------------------------------------------------------------------------------------------------- #
 
-gomem = ['뢴트게늄','뢴트','초코푸딩','루숙','해루석','해루숙','루석','캘칼', '캘리칼리', '캘리칼리데이빈슨',
-        '도파민','파민','박사','소피아','춘피아','권민','쿤미옌','왁파고', '파고', '황파고','혜지','독고혜지',
-        '비소','비밀소녀','비밀이모','히키킹','히키퀸','히키킹구','춘식','곽춘식','만두','김치만두번영택사스가','김치만두',
-        '하쿠','미츠네 하쿠','비킴','비즈니스킴','풍신','프리터','단답벌레','단답','카르나르','융털','융터르','호드','노스페라투스','덕수','이덕수']
-
-akadam = ['설리반','캡틴설리반','불곰','길버트','닌닌','긱긱','시리안',
-          '미미짱짱','세용','진희','지니','시리안','젠투','젠크리트',
-          '셈이','수셈이','빅토리','토리','발렌타인','발렌','미발','아마최','아마데우스최']
- 
-isedol = ['이세돌','이세계','챠니','챤이','비챤','릴파','르르땅','주르르','아잉네','아이네','세구','고세구','눈나구','지구즈','언니즈','막내즈','부산즈','개나리즈']
-
-def sentiment_predict(comment):
-    words = [
-          (['우왁굳','왁굳','영택'],'Noun'), (['천양','대월향'],'Noun'),          
-          # 이세돌, 고멤,아카
-          (isedol,'Noun'), (gomem,'Noun'),(akadam,'Noun'),
-
-          # 그외 단어들
-          ('헨타이','Noun'), ('튽훈','Noun'),('가성비','Noun'),('맑눈광','Noun'),
-          (['레전드','레게노'],'Noun'), (['아웃트로','인트로'],'Noun'),(['브이알챗','브이알'],'Noun'),(['수듄','고로시','뇌절'],'Noun'),(['킹아','킹애','존맛탱'],'Adjective'),
-          (['상현','하현'],'Noun'), (['고멤','고정멤버','아카데미'],'Noun'), (['고단씨','준구구','준99'],'Noun'),(['십덕','씹덕','오타쿠'],'Noun'),                        
-          (['ㄱㅇㅇ','ㄹㄱㄴ','ㄺㄴ','ㅅㅌㅊ','ㅎㅌㅊ','ㅆㅅㅌㅊ','ㅆㅎㅌㅊ'],'KoreanParticle'),
-          (['눕프로해커','눕프핵','마크','마인크래프트','왁파트','똥겜'],'Noun'), ('상황극','Noun'), ('족마신','Noun')
-            ]
-
-    for word in words:
-        name, poomsa = word
-        twi.add_dictionary(name, poomsa)
-
-    stopwords = ['의', '가', '은', '는','이', '과', '도', '를', '으로', '자', '에', '하고', '세요', '니다', '입니다',
-                '하다', '을', '이다', '다', '것', '로', '에서', '그', '인', '서', '네요', '음', '임','랑',
-                '게', '요', '에게', '엔', '이고', '거', '예요', '이에요', '어요', '어서', '여요', '하여']
-
-    comment = re.sub(r'[^ㄱ-ㅎㅏ-ㅣ가-힣 ]','', comment)
-    tmp = twi.morphs(comment, norm=True, stem=True)  #토큰화
-    tmp = [word for word in tmp if not word in stopwords]  #불용어 제거
-    encoded = tokenizer.texts_to_sequences([tmp])
-    pad_new = pad_sequences(encoded, maxlen = 44)
-    score = float(nlp_model.predict(pad_new))
-
-    return score, tmp
-
-# sentiment 결과를 nivo_data 형태로
-def nivo_pie(comment_df):
-    comment_df['sentiment'] = comment_df['score'].apply(lambda x:'호감' if x > 0.5 else'중립/부정')
-    positive = comment_df[comment_df['sentiment'] =='호감'].shape[0]
-    negative = comment_df[comment_df['sentiment'] == '중립/부정'].shape[0]
-    pos_nega = [
-        {"id": "호감", "label": "호감", "value": positive},
-        {"id": "중립/부정", "label": "중립/부정", "value": negative}
-    ]
-    return pos_nega
 
 # 댓글의 키워드 분석
 word_rules = {
@@ -228,7 +86,7 @@ def get_member_images(top_members):
     member_images = {}
     for i, member in enumerate(top_members):
         name = member[0]
-        image_path = f"C:/scraping/img/{name}.jpg"  # 이미지 파일 이름 생성 
+        image_path = f"img\{name}.jpg"  # 이미지 파일 이름 생성 
         img = Image.open(image_path).convert("RGBA")
 
         # 원형으로 크롭
@@ -243,9 +101,6 @@ def get_member_images(top_members):
         member_images[name] = img
 
     return member_images
-
-
-
 
 
 
@@ -377,45 +232,6 @@ def gomem_video(df, gomem):
 
   # 결과 출력
   return gomem_hot_video
-
-
-
-def gomem_tmp(df):
-    df['comment'] = df['comment'].str.replace("[^ㄱ-ㅎㅏ-ㅣ가-힣 ]"," ")
-    df['comment'].replace('', np.nan, inplace=True)  #비어 있는 행은 null값으로 처리
-    df.dropna(how='any', inplace=True)  #null 값 제거
-
-    words = [
-        (['우왁굳','왁굳','영택'],'Noun'), (['천양','대월향'],'Noun'),
-        # 이세돌, 고멤,아카
-        (isedol,'Noun'), (gomem,'Noun'),(akadam,'Noun'),
-
-        # 그외 단어들
-        ('헨타이','Noun'), ('튽훈','Noun'),('가성비','Noun'),
-        (['레전드','레게노'],'Noun'), (['아웃트로','인트로'],'Noun'),(['브이알챗','브이알'],'Noun'),(['수듄','고로시','뇌절'],'Noun'),(['킹아','킹애','존맛탱'],'Adjective'),
-        (['상현','하현'],'Noun'), (['고멤','고정멤버','아카데미'],'Noun'), (['고단씨','준구구','준99'],'Noun'),(['십덕','씹덕','오타쿠'],'Noun'),
-        (['ㄱㅇㅇ','ㄹㄱㄴ','ㄺㄴ','ㅅㅌㅊ','ㅎㅌㅊ','ㅆㅅㅌㅊ','ㅆㅎㅌㅊ'],'KoreanParticle'),
-        (['눕프로해커','눕프핵','마크','마인크래프트','왁파트','똥겜'],'Noun'), ('상황극','Noun'), ('족마신','Noun')
-            ]
-
-    for word in words:
-        name, poomsa = word
-        twi.add_dictionary(name, poomsa)
-
-        stopwords = ['의', '가', '은', '는','이', '과', '도', '를', '으로', '자', '에', '하고', '세요', '니다', '입니다',
-                    '하다', '을', '이다', '다', '것', '로', '에서', '그', '인', '서', '네요', '음', '임','랑',
-                    '게', '요', '에게', '엔', '이고', '거', '예요', '이에요', '어요', '어서', '여요', '하여']
-
-    text_token = []
-    for sentence in df['comment']:
-        tmp = []
-        tmp = twi.morphs(sentence, stem=True, norm=True)  #토큰화
-        tmp = [word for word in tmp if not word in stopwords]  #불용어 제거
-        text_token.append(tmp)
-
-    df['tmp'] = text_token
-    
-    return df
 
 
 
