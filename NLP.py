@@ -86,7 +86,7 @@ def get_member_images(top_members):
     member_images = {}
     for i, member in enumerate(top_members):
         name = member[0]
-        image_path = f"img\{name}.jpg"  # 이미지 파일 이름 생성  
+        image_path = f"img/{name}.jpg"  # 이미지 파일 이름 생성  
         img = Image.open(image_path).convert("RGBA")
 
         # 원형으로 크롭
