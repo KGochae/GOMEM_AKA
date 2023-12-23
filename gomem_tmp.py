@@ -1,11 +1,7 @@
-import io
 import streamlit as st
 import pandas as pd
 import ast 
-import json
-import os
 
-from googleapiclient.discovery import build
 from streamlit_elements import dashboard
 from streamlit_elements import nivo, elements, mui
 from NLP import  get_member_images, gomem_video, gomem_comment, monthly_gomem
